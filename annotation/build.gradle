@@ -1,0 +1,14 @@
+
+plugins {
+    id 'java-library'
+    id "edu.wpi.first.GradleRIO" version "2026.2.1"
+
+}
+
+dependencies {
+    implementation wpi.java.deps.wpilib()
+    implementation wpi.java.vendor.java()
+}
+
+group 'com.orangefrc'
+version '1.0.0'

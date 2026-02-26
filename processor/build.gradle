@@ -1,0 +1,9 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    implementation project(':annotation')
+}
+group 'com.orangefrc'
+version '1.0.0'
