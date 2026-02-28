@@ -6,6 +6,9 @@ import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.littletonrobotics.junction.Logger;
 
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -24,17 +27,19 @@ import com.orangefrc.annotation.GenerateJson;
 
 
 public class ShooterSubsystem extends SubsystemBase {
-
+  ShooterTunerJson jsonTuner = new ShooterTunerJson();
   ShooterIO io;
   ShooterIOInputsAutoLogged inputs = new ShooterIOInputsAutoLogged();
 
   @GenerateJson
   public class ShooterTuner {
-    double flywheelSpeed;
-    double kickupSpeed;
+    double flywheelSpeed = 0.0d;
+    double kickupSpeed = 10.0d;
+    int freelo = 4;
   }
 
   public ShooterSubsystem(ShooterIO io) {
+    jsonTuner.init();
     this.io = io;
   }
 

@@ -8,6 +8,8 @@ plugins {
 dependencies {
     implementation wpi.java.deps.wpilib()
     implementation wpi.java.vendor.java()
+    implementation 'com.google.code.gson:gson:2.13.2'
+
 }
 
 group 'com.orangefrc'

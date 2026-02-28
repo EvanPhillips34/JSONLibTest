@@ -22,6 +22,7 @@ import org.littletonrobotics.junction.Logger;
 
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
+import com.orangefrc.annotation.NT4Publisher;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
@@ -56,6 +57,8 @@ import frc.robot.Constants;
 import frc.robot.Constants.Mode;
 import frc.robot.Util.LocalADStarAK;
 import frc.robot.generated.TunerConstants;
+
+import com.orangefrc.annotation.GSON;
 
 public class DriveSubsystem extends SubsystemBase implements Vision.VisionConsumer {
 
@@ -108,6 +111,8 @@ public class DriveSubsystem extends SubsystemBase implements Vision.VisionConsum
         // }
 
         try (Reader reader = new FileReader(TunerConstants.filePath)) {
+            PIDJson jawnson = GSON.gson.fromJson(reader, PIDJson.class);
+
             PIDJson pidJson = TunerConstants.gson.fromJson(reader, PIDJson.class);
             updateSteerP = pidJson.getSP();
             updateSteerI = pidJson.getSI();
@@ -193,6 +198,7 @@ public class DriveSubsystem extends SubsystemBase implements Vision.VisionConsum
     File file = new File(TunerConstants.filePath);
 	@Override
 	public void periodic() {
+ 
         //boolean isWriteable = file.setWritable(true);
         Logger.recordOutput("PIDJson/fileWriteable", file.canWrite());
         if(SmartDashboard.getNumber("changeSP", 0.0) != updateSteerP || SmartDashboard.getNumber("changeSI", 0.0) != updateSteerI || SmartDashboard.getNumber("changeSD", 0.0) != updateSteerD || SmartDashboard.getNumber("changeDP", 0.0) != updateDriveP || SmartDashboard.getNumber("changeDI", 0.0) != updateDriveI ||  SmartDashboard.getNumber("changeDD", 0.0) != updateDriveD ||  SmartDashboard.getNumber("changeDV", 0.0) != updateDriveV) {
