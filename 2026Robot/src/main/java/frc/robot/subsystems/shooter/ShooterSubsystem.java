@@ -39,6 +39,8 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   public ShooterSubsystem(ShooterIO io) {
+    
+    
     jsonTuner.init();
     this.io = io;
   }
@@ -49,6 +51,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
+    jsonTuner.updateVals();
     io.updateInputs(inputs);
     Logger.processInputs("Shooter", inputs);
   }

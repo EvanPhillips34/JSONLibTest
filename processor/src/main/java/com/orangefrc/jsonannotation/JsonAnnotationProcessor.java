@@ -2,6 +2,9 @@ package com.orangefrc.jsonannotation;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +15,7 @@ import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Filer;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
+import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
@@ -31,10 +35,14 @@ import com.orangefrc.annotation.NT4Publisher;
 import com.orangefrc.annotation.NT4Publisher.*;
 import com.orangefrc.annotation.Update.*;
 import edu.wpi.first.networktables.*;
+import edu.wpi.first.wpilibj.DriverStation;
+import javax.annotation.processing.SupportedSourceVersion;
+import javax.lang.model.SourceVersion;
 
 
 
 @SupportedAnnotationTypes("com.orangefrc.annotation.GenerateJson")
+@SupportedSourceVersion(SourceVersion.RELEASE_17)
 
 public class JsonAnnotationProcessor extends AbstractProcessor{
         Map<Name, TypeMirror> fieldsMap = new HashMap<>();
@@ -42,15 +50,18 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
         String jsonClassName;
 
         GSON typegson = new GSON();
+        String classn;
+
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        
         for(Element element : roundEnv.getElementsAnnotatedWith(GenerateJson.class)) {
             if(element.getKind() == ElementKind.CLASS) {
                 TypeElement typeElement = (TypeElement) element;
                 String className = typeElement.getSimpleName().toString();
                 String generatedClassName = className + "Json";
+                classn = generatedClassName + "NT4";
+
                 String packageName = processingEnv.getElementUtils().getPackageOf(element).getQualifiedName().toString();
                 List<VariableElement> fields = ElementFilter.fieldsIn(typeElement.getEnclosedElements());
                 try {
@@ -66,15 +77,13 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
         }
         return true;
     }
-
-
     private void generateClass(String packageName, String className, List<VariableElement> fields) throws IOException{
         Filer filer = processingEnv.getFiler();
         JavaFileObject sourceFile = filer.createSourceFile(packageName + "." + className);
         try (Writer writer = sourceFile.openWriter()) {
             writer.write("package " + packageName + ";\n\n");
-            writer.write("import edu.wpi.first.networktables.*;\nimport com.orangefrc.annotation.GSON;\nimport java.io.*;\nimport java.util.Arrays;\nimport java.util.stream.*;\nimport java.nio.file.*;");
-            writer.write("import java.util.Map;\n import javax.lang.model.element.Name;\n import java.util.HashMap;\nimport frc.robot.subsystems.shooter.ShooterTunerJsonNT4;\nimport java.lang.StackTraceElement;\n");
+            writer.write("import edu.wpi.first.networktables.*;\nimport com.orangefrc.annotation.GSON;\nimport java.io.*;\nimport java.util.Arrays;\nimport java.util.stream.*;\nimport java.nio.file.*;\n");
+            writer.write("import java.util.Map;\n import javax.lang.model.element.Name;\n import java.util.HashMap;\nimport frc.robot.subsystems.shooter." + classn + ";\nimport java.lang.StackTraceElement;\n");
 
             writer.write("public class " + className + " {\n");
             for(VariableElement field : fields) {
@@ -105,7 +114,6 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
             for(Map.Entry<Name,TypeMirror> entry : fieldsMap.entrySet()) {
                 writer.write("this." + entry.getKey() + " = " + entry.getKey() + ";\n");
             }
-            String classn = className + "NT4";
 
             writer.write("}\n");
 
@@ -125,7 +133,10 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
             }
             writer.write("JSON json;\n");
             writer.write("public void init() {\n");
+            writer.write(classn + ".init();\n");
+
             writer.write("try{\n");
+            writer.write(classn + ".table.getStringTopic(\"Status\").publish().set(\"Creating file!\");\n");
             writer.write("Files.createFile(path);\n}\n");
 
             writer.write("catch(IOException e) {\n");
@@ -133,11 +144,13 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
 
 
             writer.write("try(Reader reader = new FileReader(filePath)) {\n");
+            writer.write("if(GSON.gson.fromJson(reader, JSON.class) != null) {\n");
             writer.write("json = GSON.gson.fromJson(reader, JSON.class);\n");
+            writer.write(classn + ".table.getStringTopic(\"Status\").publish().set(\"Reading file!\");\n");
             writer.write("}\n");
+            writer.write("else {\n");
+            writer.write(classn + ".table.getStringTopic(\"Status\").publish().set(\"Making new class file!\");\n");
 
-            
-            writer.write("catch(IOException e) {\n" + classn + ".table.getStringTopic(\"Error\").publish().set(Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\r\n");
             writer.write("json = new JSON(");
             first = true;
             for(Map.Entry<Name,TypeMirror> entry : fieldsMap.entrySet()) {
@@ -155,14 +168,18 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
                     writer.write("0");
                 }
             }
-            writer.write(");\n}\n");
-
+            writer.write(");\n}\n}");
+            
+            writer.write("catch(IOException e) {\n" + classn + ".table.getStringTopic(\"Error\").publish().set(Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\r\n}\n");
+            
             writer.write("try(Writer writer = new FileWriter(filePath)) {\n" + //
                                 "    GSON.gson.toJson(json, writer);\n" + //
-                                "    writer.close();\n" + //
+                                "    writer.close();\n" +
+                                            classn + ".table.getStringTopic(\"Status\").publish().set(\"Writing file!\");\n"
++ 
                                 "}\n" + //
                                 "catch(IOException e) {\n" + //
-                                "ShooterTunerJsonNT4.table.getStringTopic(\"Error\").publish().set(Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\n" + //
+                                classn + ".table.getStringTopic(\"Error\").publish().set(Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\n" + //
                                 "}\n");
 
             writer.write("}\n");
@@ -183,7 +200,6 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
             writer.write(") {\n");
 
             writer.write("");
-            writer.write(classn + ".init();\n");
 
             for(Name key: fieldsMap.keySet()) {
                 if(fieldsMap.get(key).getKind() == TypeKind.DOUBLE) {
@@ -194,6 +210,70 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
                 }
             }
             
+            writer.write("}\n");
+
+            writer.write("public void updateVals() {\n");
+            
+            writer.write("try(");
+            first = true;
+            for(Map.Entry<Name,TypeMirror> entry : fieldsMap.entrySet()) {
+                if(entry.getValue().getKind() == TypeKind.DOUBLE) {
+                    writer.write("DoubleSubscriber sub" + entry.getKey() +" = " + classn + ".doubleMap.get(\"" + entry.getKey() + "\").getTopic().subscribe(0.0);");
+                }
+                if(entry.getValue().getKind() == TypeKind.INT) {
+                    writer.write("IntegerSubscriber sub" + entry.getKey() +" = " + classn + ".intMap.get(\"" + entry.getKey() + "\").getTopic().subscribe(0);");
+                }
+            }
+            writer.write(") {\n");
+            writer.write("if(");
+            
+            for(Map.Entry<Name,TypeMirror> entry : fieldsMap.entrySet()) {
+                if(first) {
+                    writer.write("");
+                    first = false;
+                }
+                else {
+                    writer.write(" || ");
+                }
+                if(entry.getValue().getKind() == TypeKind.DOUBLE) {
+                    writer.write("update" + entry.getKey() +" != " + "sub" + entry.getKey() + ".getAsDouble()");
+                }
+                if(entry.getValue().getKind() == TypeKind.INT) {
+                    writer.write("update" + entry.getKey() +" != (int) sub" + entry.getKey() + ".get()");
+                }
+            }
+            writer.write(") {\n");
+            for(Map.Entry<Name,TypeMirror> entry : fieldsMap.entrySet()) {
+                if(entry.getValue().getKind() == TypeKind.DOUBLE) {
+                    writer.write("update" + entry.getKey() +" = sub" + entry.getKey() + ".getAsDouble();\n");
+                    writer.write("sub" + entry.getKey() + ".close();\n");
+                }
+                if(entry.getValue().getKind() == TypeKind.INT) {
+                    writer.write("update" + entry.getKey() +" = (int) sub" + entry.getKey() + ".get();\n");
+                    writer.write("sub" + entry.getKey() + ".close();\n");
+                }
+            }
+            writer.write("json = new JSON(");
+            first = true;
+            for(Map.Entry<Name,TypeMirror> entry : fieldsMap.entrySet()) {
+                if(first) {
+                    writer.write("");
+                    first = false;
+                }
+                else {
+                    writer.write(", ");
+                }
+                writer.write("update" + entry.getKey());
+            }
+            writer.write(");\n");
+            writer.write("try(Writer writer = new FileWriter(filePath)) {\n");
+            writer.write("GSON.gson.toJson(json, writer);\n");
+            writer.write("writer.close();\n");
+            writer.write("}\n");
+            writer.write("catch(IOException e) {\n" + classn +".table.getStringTopic(\"Error\").publish().set(Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\n" + "}\n");
+            writer.write("}\n");
+            writer.write("}\n");
+
             writer.write("}\n");
             writer.write("}");
         }

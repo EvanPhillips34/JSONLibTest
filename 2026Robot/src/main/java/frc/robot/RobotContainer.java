@@ -8,6 +8,8 @@ import org.ironmaple.simulation.SimulatedArena;
 import org.ironmaple.simulation.drivesims.SwerveDriveSimulation;
 import org.littletonrobotics.junction.Logger;
 
+import com.orangefrc.annotation.GSON;
+
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -24,6 +26,8 @@ import frc.robot.subsystems.drive.GyroIOSim;
 import frc.robot.subsystems.drive.ModuleIO;
 import frc.robot.subsystems.drive.ModuleIOSim;
 import frc.robot.subsystems.drive.ModuleIOTalon;
+import frc.robot.subsystems.shooter.ShooterIOSpark;
+import frc.robot.subsystems.shooter.ShooterSubsystem;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionConstants;
 import frc.robot.subsystems.vision.VisionIO;
@@ -37,11 +41,13 @@ public class RobotContainer {
 
   private final DriveSubsystem drive;
   private final Vision vision;
+  private final ShooterSubsystem shooter;
 
   private SwerveDriveSimulation driveSimulation = null;
 
   public RobotContainer() {
-
+    GSON.createDir();
+    shooter = new ShooterSubsystem(new ShooterIOSpark());
     switch(Constants.currentMode) {
       case REAL:
         drive = new DriveSubsystem(new GyroIONavX(), new ModuleIOTalon(TunerConstants.FrontLeft), new ModuleIOTalon(TunerConstants.FrontRight), new ModuleIOTalon(TunerConstants.BackLeft), new ModuleIOTalon(TunerConstants.BackRight), (pose) -> {});
