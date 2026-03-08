@@ -1,0 +1,11 @@
+plugins {
+    id 'java-library'
+  id 'com.gradleup.shadow' version '9.3.2'
+
+}
+dependencies {
+}
+
+
+group 'com.orangefrc'
+version globalVersion

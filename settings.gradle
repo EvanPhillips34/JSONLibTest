@@ -28,7 +28,7 @@ pluginManagement {
 }
 include 'annotation'
 include 'processor'
-include '2026Robot'
+include 'lib-generator'
 
 Properties props = System.getProperties();
 props.setProperty("org.gradle.internal.native.headers.unresolved.dependencies.ignore", "true");

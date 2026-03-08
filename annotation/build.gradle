@@ -13,4 +13,4 @@ dependencies {
 }
 
 group 'com.orangefrc'
-version '1.0.0'
+version globalVersion

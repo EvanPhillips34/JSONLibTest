@@ -1,21 +1,16 @@
 plugins {
     id 'java-library'
     id "edu.wpi.first.GradleRIO" version "2026.2.1"
+    //id 'com.github.sherter.google-java-format' version '1.34.1'
 
 }
-
 dependencies {
     implementation project(':annotation')
     implementation 'com.google.code.gson:gson:2.13.2'
-
     implementation wpi.java.deps.wpilib()
     implementation wpi.java.vendor.java()
 }
 
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
-    }
-}
+
 group 'com.orangefrc'
-version '1.0.0'
+version globalVersion
