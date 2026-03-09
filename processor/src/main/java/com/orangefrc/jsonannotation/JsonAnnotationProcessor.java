@@ -2,38 +2,29 @@ package com.orangefrc.jsonannotation;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Filer;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
+import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
-import javax.lang.model.util.Elements;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 
 import com.orangefrc.annotation.GenerateJson;
-import edu.wpi.first.networktables.*;
-import edu.wpi.first.wpilibj.DriverStation;
-import javax.annotation.processing.SupportedSourceVersion;
-import javax.lang.model.SourceVersion;
 
 
 
@@ -138,7 +129,7 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
             writer.write("Files.createFile(path);\n}\n");
 
             writer.write("catch(IOException e) {\n");
-            writer.write(classn + ".table.getStringTopic(\"Error\").publish().set(Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\r\n" + "}\n");
+            writer.write(classn + ".table.getStringTopic(\"FileCreateError\").publish().set(e.getMessage() + \"\\n\" + Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\r\n" + "}\n");
 
 
             writer.write("try(Reader reader = new FileReader(filePath)) {\n");
@@ -168,7 +159,7 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
             }
             writer.write(");\n}\n}");
             
-            writer.write("catch(IOException e) {\n" + classn + ".table.getStringTopic(\"Error\").publish().set(Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\r\n}\n");
+            writer.write("catch(IOException e) {\n" + classn + ".table.getStringTopic(\"FileReadError\").publish().set(e.getMessage() + \"\\n\" + Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\r\n}\n");
             
             writer.write("try(Writer writer = new FileWriter(filePath)) {\n" + //
                                 "    GSON.gson.toJson(json, writer);\n" + //
@@ -177,7 +168,7 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
 + 
                                 "}\n" + //
                                 "catch(IOException e) {\n" + //
-                                classn + ".table.getStringTopic(\"Error\").publish().set(Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\n" + //
+                                classn + ".table.getStringTopic(\"FileWriteError\").publish().set(e.getMessage() + \"\\n\" + Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\n" + //
                                 "}\n");
 
             writer.write("}\n");
@@ -211,18 +202,7 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
             writer.write("}\n");
 
             writer.write("public void updateVals() {\n");
-            
-            writer.write("try(");
             first = true;
-            for(Map.Entry<Name,TypeMirror> entry : fieldsMap.entrySet()) {
-                if(entry.getValue().getKind() == TypeKind.DOUBLE) {
-                    writer.write("DoubleSubscriber sub" + entry.getKey() +" = " + classn + ".doubleMap.get(\"" + entry.getKey() + "\").getTopic().subscribe(0.0);");
-                }
-                if(entry.getValue().getKind() == TypeKind.INT) {
-                    writer.write("IntegerSubscriber sub" + entry.getKey() +" = " + classn + ".intMap.get(\"" + entry.getKey() + "\").getTopic().subscribe(0);");
-                }
-            }
-            writer.write(") {\n");
             writer.write("if(");
             
             for(Map.Entry<Name,TypeMirror> entry : fieldsMap.entrySet()) {
@@ -234,22 +214,21 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
                     writer.write(" || ");
                 }
                 if(entry.getValue().getKind() == TypeKind.DOUBLE) {
-                    writer.write("update" + entry.getKey() +" != " + "sub" + entry.getKey() + ".getAsDouble()");
+                    writer.write("update" + entry.getKey() +" != " + classn + ".dubSubMap.get(\"" + entry.getKey() + "\").getAsDouble()");
                 }
                 if(entry.getValue().getKind() == TypeKind.INT) {
-                    writer.write("update" + entry.getKey() +" != (int) sub" + entry.getKey() + ".get()");
+                    writer.write("update" + entry.getKey() +" != (int) " + classn + ".intSubMap.get(\"" + entry.getKey() + ".get()");
                 }
             }
             writer.write(") {\n");
             writer.write("hasUpdate = true;\n");
             for(Map.Entry<Name,TypeMirror> entry : fieldsMap.entrySet()) {
                 if(entry.getValue().getKind() == TypeKind.DOUBLE) {
-                    writer.write("update" + entry.getKey() +" = sub" + entry.getKey() + ".getAsDouble();\n");
-                    writer.write("sub" + entry.getKey() + ".close();\n");
+                    writer.write("update" + entry.getKey() +" = " + classn + ".dubSubMap.get(\"" + entry.getKey() + "\").getAsDouble();\n");
                 }
                 if(entry.getValue().getKind() == TypeKind.INT) {
-                    writer.write("update" + entry.getKey() +" = (int) sub" + entry.getKey() + ".get();\n");
-                    writer.write("sub" + entry.getKey() + ".close();\n");
+                    writer.write("update" + entry.getKey() +" = (int) " + classn + ".intSubMap.get(\"" + entry.getKey() + ".get();\n");
+
                 }
             }
             writer.write("json = new JSON(");
@@ -274,7 +253,6 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
             writer.write("else {\n hasUpdate = false;\n}\n");
             writer.write("}\n");
 
-            writer.write("}\n");
             
             for(Map.Entry<Name,TypeMirror> entry : fieldsMap.entrySet()) {
                 writer.write("public " + entry.getValue().toString() +" get" + entry.getKey() + "() {\n");
@@ -304,18 +282,27 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
         writer.write("public static NetworkTableInstance inst = NetworkTableInstance.getDefault();\n");
         writer.write("public static NetworkTable table = inst.getTable(\"Tuning\");\n");
 
+        writer.write("  public static Map<String, DoubleSubscriber> dubSubMap = new HashMap<String, DoubleSubscriber>();\n" + //
+                        "  public static Map<String, IntegerSubscriber> intSubMap = new HashMap<String, IntegerSubscriber>();");
+
         writer.write("public static void init() {\n");
         for(Map.Entry<Name, TypeMirror> entry : fieldsMap.entrySet()) {
             if(entry.getValue().getKind() == TypeKind.DOUBLE) {
                 writer.write("DoublePublisher " + entry.getKey() + " = table.getDoubleTopic(\"" + className + "/" + entry.getKey() + "\").publish();\n");
                 writer.write("doubleMap.put(\"" + entry.getKey() + "\", " + entry.getKey() + ");\n");
+                writer.write("DoubleSubscriber " + entry.getKey() + "Sub = " + entry.getKey() + ".getTopic().subscribe(0.0);\n");
+                writer.write("dubSubMap.put(\"" + entry.getKey() + "Sub\"," + entry.getKey() + "Sub);\n");
             }
             if(entry.getValue().getKind() == TypeKind.INT) {
                 writer.write("IntegerPublisher " + entry.getKey() + " = table.getIntegerTopic(\"" + className + "/" + entry.getKey() + "\").publish();\n");
                 writer.write("intMap.put(\"" + entry.getKey() + "\", " + entry.getKey() + ");\n");
+                writer.write("IntegerSubscriber " + entry.getKey() + "Sub = " + entry.getKey() + ".getTopic().subscribe(0);\n");
+                writer.write("intSubMap.put(\"" + entry.getKey() + "Sub\"," + entry.getKey() + "Sub);\n");
             }
             
         }
+
+        
         writer.write("}\n");
         writer.write("}");
     }
