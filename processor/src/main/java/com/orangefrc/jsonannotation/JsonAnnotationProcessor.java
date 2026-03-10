@@ -38,6 +38,7 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+ 
         for(Element element : roundEnv.getElementsAnnotatedWith(GenerateJson.class)) {
             if(element.getKind() == ElementKind.CLASS) {
                 TypeElement typeElement = (TypeElement) element;
@@ -125,20 +126,53 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
             writer.write(classn + ".init();\n");
 
             writer.write("try{\n");
-            writer.write(classn + ".table.getStringTopic(\"Status\").publish().set(\"Creating file!\");\n");
-            writer.write("Files.createFile(path);\n}\n");
+                        writer.write("      if(!Files.exists(path)) {\n" + //
+                                "            Files.createFile(path);\n" + //
+                                classn + ".table.getStringTopic(\"Status\").publish().set(\"Creating file for " + className +"!\");\n}\n" +
+                                "" + //
+                                "      }\n");
 
-            writer.write("catch(IOException e) {\n");
-            writer.write(classn + ".table.getStringTopic(\"FileCreateError\").publish().set(e.getMessage() + \"\\n\" + Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\r\n" + "}\n");
+
+            writer.write("catch (IOException e) {\r\n" + //
+                                      classn + ".table\r\n" + //
+                                "          .getStringTopic(\"FileCreateError\")\r\n" + //
+                                "          .publish()\r\n" + //
+                                "          .set(e.getMessage() + \"\\n" + //
+                                "\"\r\n" + //
+                                "              + Arrays.stream(e.getStackTrace())\r\n" + //
+                                "                  .map(StackTraceElement::toString)\r\n" + //
+                                "                  .collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\r\n" + //
+                                "    }\r\n" + //
+                                "    catch (UnsupportedOperationException e) {\r\n" + //
+                                "      " + classn + ".table\r\n" + //
+                                "          .getStringTopic(\"FileCreateError\")\r\n" + //
+                                "          .publish()\r\n" + //
+                                "          .set(e.getMessage() + \"\\n" + //
+                                "\"\r\n" + //
+                                "              + Arrays.stream(e.getStackTrace())\r\n" + //
+                                "                  .map(StackTraceElement::toString)\r\n" + //
+                                "                  .collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\r\n" + //
+                                "    }    catch (SecurityException e) {\r\n" + //
+                                      classn + ".table\r\n" + //
+                                "          .getStringTopic(\"FileCreateError\")\r\n" + //
+                                "          .publish()\r\n" + //
+                                "          .set(e.getMessage() + \"\\n" + //
+                                "\"\r\n" + //
+                                "              + Arrays.stream(e.getStackTrace())\r\n" + //
+                                "                  .map(StackTraceElement::toString)\r\n" + //
+                                "                  .collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\r\n" + //
+                                "    }\n");
+            //writer.write(classn + ".table.getStringTopic(\"FileCreateError\").publish().set(e.getCause() + \"\\n\" + Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\r\n" + "}\n");
 
 
             writer.write("try(Reader reader = new FileReader(filePath)) {\n");
             writer.write("if(GSON.gson.fromJson(reader, JSON.class) != null) {\n");
             writer.write("json = GSON.gson.fromJson(reader, JSON.class);\n");
-            writer.write(classn + ".table.getStringTopic(\"Status\").publish().set(\"Reading file!\");\n");
+            writer.write(classn + ".table.getStringTopic(\"Status\").publish().set(\"Reading file for " + className + "!\");\n");
+            writer.write(classn + ".table.getStringTopic(\"JSONString\").publish().set(GSON.gson.fromJson(reader, JSON.class).toString());\n");
             writer.write("}\n");
             writer.write("else {\n");
-            writer.write(classn + ".table.getStringTopic(\"Status\").publish().set(\"Making new class file!\");\n");
+            writer.write(classn + ".table.getStringTopic(\"Status\").publish().set(\"Making new class file for " + className +"!\");\n");
 
             writer.write("json = new JSON(");
             first = true;
@@ -159,16 +193,16 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
             }
             writer.write(");\n}\n}");
             
-            writer.write("catch(IOException e) {\n" + classn + ".table.getStringTopic(\"FileReadError\").publish().set(e.getMessage() + \"\\n\" + Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\r\n}\n");
+            writer.write("catch(Exception e) {\n" + classn + ".table.getStringTopic(\"FileReadError\").publish().set(e.getCause() + \"\\n\" + Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\r\n}\n");
             
             writer.write("try(Writer writer = new FileWriter(filePath)) {\n" + //
                                 "    GSON.gson.toJson(json, writer);\n" + //
                                 "    writer.close();\n" +
-                                            classn + ".table.getStringTopic(\"Status\").publish().set(\"Writing file!\");\n"
+                                            classn + ".table.getStringTopic(\"Status\").publish().set(\"Writing file for " + className + "!\");\n"
 + 
                                 "}\n" + //
-                                "catch(IOException e) {\n" + //
-                                classn + ".table.getStringTopic(\"FileWriteError\").publish().set(e.getMessage() + \"\\n\" + Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\n" + //
+                                "catch(Exception e) {\n" + //
+                                classn + ".table.getStringTopic(\"FileWriteError\").publish().set(e.getCause() + \"\\n\" + Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\n" + //
                                 "}\n");
 
             writer.write("}\n");
@@ -202,6 +236,7 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
             writer.write("}\n");
 
             writer.write("public void updateVals() {\n");
+            writer.write("try {\n");
             first = true;
             writer.write("if(");
             
@@ -248,10 +283,11 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
             writer.write("GSON.gson.toJson(json, writer);\n");
             writer.write("writer.close();\n");
             writer.write("}\n");
-            writer.write("catch(IOException e) {\n" + classn +".table.getStringTopic(\"Error\").publish().set(Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\n" + "}\n");
+            writer.write("catch(Exception e) {\n" + classn +".table.getStringTopic(\"Error\").publish().set(Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\n" + "}\n");
             writer.write("}\n");
             writer.write("else {\n hasUpdate = false;\n}\n");
             writer.write("}\n");
+            writer.write("catch(NullPointerException e) {\n" + classn + ".table.getStringTopic(\"UpdateError\").publish().set(Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\n}\n}\n");
 
             
             for(Map.Entry<Name,TypeMirror> entry : fieldsMap.entrySet()) {

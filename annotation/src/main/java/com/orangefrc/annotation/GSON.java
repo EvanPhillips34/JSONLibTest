@@ -3,7 +3,15 @@ package com.orangefrc.annotation;
 import com.google.gson.Gson;
 
 import java.nio.file.*;
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
+import javax.annotation.processing.ProcessingEnvironment;
+import javax.tools.Diagnostic;
+
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 
 
 
@@ -18,6 +26,16 @@ public class GSON {
         }
         catch(IOException e) {
             e.printStackTrace();
+        }
+
+        try {
+            Process process = Runtime.getRuntime().exec("chmod -R 777 /home/lvuser/pid/");
+            process.waitFor();
+            
+        } catch (IOException e) {
+            System.err.println(e);
+        } catch (InterruptedException e) {
+            System.err.println(e);
         }
 }
     
