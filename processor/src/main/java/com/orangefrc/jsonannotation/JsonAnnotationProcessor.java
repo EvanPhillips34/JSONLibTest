@@ -111,15 +111,15 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
             writer.write("String filePath = \"/home/lvuser/pid/" + className + ".json\";\n");
             writer.write("Path path = Paths.get(filePath);");
 
-            for(Name key: fieldsMap.keySet()) {
-                if(fieldsMap.get(key).getKind() == TypeKind.DOUBLE) {
-                    writer.write("DoublePublisher " + key.toString() + "Pub = " + classn + ".doubleMap.get(\"" + key.toString() + "\");\n");
-                }
+            // for(Name key: fieldsMap.keySet()) {
+            //     if(fieldsMap.get(key).getKind() == TypeKind.DOUBLE) {
+            //         writer.write("DoublePublisher " + key.toString() + "Pub = " + classn + ".doubleMap.get(\"" + key.toString() + "\");\n");
+            //     }
 
-                if(fieldsMap.get(key).getKind() == TypeKind.INT) {
-                    writer.write("IntegerPublisher " + key.toString() + "Pub = " + classn + ".intMap.get(\"" + key.toString() + "\");\n");
-                }
-            }
+            //     if(fieldsMap.get(key).getKind() == TypeKind.INT) {
+            //         writer.write("IntegerPublisher " + key.toString() + "Pub = " + classn + ".intMap.get(\"" + key.toString() + "\");\n");
+            //     }
+            // }
             writer.write("JSON json;\n");
             writer.write("public void init() {\n");
             writer.write(classn + ".init();\n");
@@ -192,10 +192,10 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
 
             for(Name key: fieldsMap.keySet()) {
                 if(fieldsMap.get(key).getKind() == TypeKind.DOUBLE) {
-                    writer.write(key.toString() + "Pub.set(" + key.toString() + ");\n");
+                    writer.write(classn + ".doubleMap.get(\"" + key.toString() + "\").set(" + key.toString() + ");\n");
                 }
                 if(fieldsMap.get(key).getKind() == TypeKind.INT) {
-                    writer.write(key.toString() + "Pub.set(" + key.toString() + ");\n");
+                    writer.write(classn + ".intMap.get(\"" + key.toString() + "\").set(" + key.toString() + ");\n");
                 }
             }
             
