@@ -2,6 +2,8 @@ package com.orangefrc.annotation;
 
 import com.google.gson.Gson;
 
+import edu.wpi.first.networktables.NetworkTableInstance;
+
 import java.nio.file.*;
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -18,7 +20,6 @@ import java.io.Writer;
 
 public class GSON {
     public static Gson gson = new Gson();
-
     public static void createDir() {
         Path path = Paths.get("/home/lvuser/pid/");
         try{

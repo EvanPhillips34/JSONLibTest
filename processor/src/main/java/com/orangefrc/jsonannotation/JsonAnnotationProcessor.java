@@ -133,10 +133,7 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
                                 "      }\n");
 
 
-            writer.write("catch (IOException e) {\r\n" + //
-                                      classn + ".table\r\n" + //
-                                "          .getStringTopic(\"FileCreateError\")\r\n" + //
-                                "          .publish()\r\n" + //
+            writer.write("catch (IOException e) {\r\n" +"NT4Publisher.createError" + //
                                 "          .set(e.getMessage() + \"\\n" + //
                                 "\"\r\n" + //
                                 "              + Arrays.stream(e.getStackTrace())\r\n" + //
@@ -144,18 +141,14 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
                                 "                  .collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\r\n" + //
                                 "    }\r\n" + //
                                 "    catch (UnsupportedOperationException e) {\r\n" + //
-                                "      " + classn + ".table\r\n" + //
-                                "          .getStringTopic(\"FileCreateError\")\r\n" + //
-                                "          .publish()\r\n" + //
+                                "      " + "NT4Publisher.createError\r\n" + //
                                 "          .set(e.getMessage() + \"\\n" + //
                                 "\"\r\n" + //
                                 "              + Arrays.stream(e.getStackTrace())\r\n" + //
                                 "                  .map(StackTraceElement::toString)\r\n" + //
                                 "                  .collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\r\n" + //
                                 "    }    catch (SecurityException e) {\r\n" + //
-                                      classn + ".table\r\n" + //
-                                "          .getStringTopic(\"FileCreateError\")\r\n" + //
-                                "          .publish()\r\n" + //
+                                       "NT4Publisher.createError" +
                                 "          .set(e.getMessage() + \"\\n" + //
                                 "\"\r\n" + //
                                 "              + Arrays.stream(e.getStackTrace())\r\n" + //
@@ -168,11 +161,10 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
             writer.write("try(Reader reader = new FileReader(filePath)) {\n");
             writer.write("if(GSON.gson.fromJson(reader, JSON.class) != null) {\n");
             writer.write("json = GSON.gson.fromJson(reader, JSON.class);\n");
-            writer.write(classn + ".table.getStringTopic(\"Status\").publish().set(\"Reading file for " + className + "!\");\n");
-            writer.write(classn + ".table.getStringTopic(\"JSONString\").publish().set(GSON.gson.fromJson(reader, JSON.class).toString());\n");
+            writer.write("NT4Publisher.readError.set(\"Reading file for " + className + "!\");\n");
             writer.write("}\n");
             writer.write("else {\n");
-            writer.write(classn + ".table.getStringTopic(\"Status\").publish().set(\"Making new class file for " + className +"!\");\n");
+            writer.write("NT4Publisher.status." + "set(\"Making new class file for " + className +"!\");\n");
 
             writer.write("json = new JSON(");
             first = true;
@@ -193,16 +185,16 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
             }
             writer.write(");\n}\n}");
             
-            writer.write("catch(Exception e) {\n" + classn + ".table.getStringTopic(\"FileReadError\").publish().set(e.getCause() + \"\\n\" + Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\r\n}\n");
+            writer.write("catch(Exception e) {\n" + "NT4Publisher.readError." + "set(e.getCause() + \"\\n\" + Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\r\n}\n");
             
             writer.write("try(Writer writer = new FileWriter(filePath)) {\n" + //
                                 "    GSON.gson.toJson(json, writer);\n" + //
                                 "    writer.close();\n" +
-                                            classn + ".table.getStringTopic(\"Status\").publish().set(\"Writing file for " + className + "!\");\n"
+                                            "NT4Publisher.status" + ".set(\"Writing file for " + className + "!\");\n"
 + 
                                 "}\n" + //
                                 "catch(Exception e) {\n" + //
-                                classn + ".table.getStringTopic(\"FileWriteError\").publish().set(e.getCause() + \"\\n\" + Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\n" + //
+                                "NT4Publisher.writeError" + ".set(e.getCause() + \"\\n\" + Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\n" + //
                                 "}\n");
 
             writer.write("}\n");
@@ -283,11 +275,11 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
             writer.write("GSON.gson.toJson(json, writer);\n");
             writer.write("writer.close();\n");
             writer.write("}\n");
-            writer.write("catch(Exception e) {\n" + classn +".table.getStringTopic(\"Error\").publish().set(Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\n" + "}\n");
+            writer.write("catch(Exception e) {\n" + "NT4Publisher.writeError.set" + "(Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\n" + "}\n");
             writer.write("}\n");
             writer.write("else {\n hasUpdate = false;\n}\n");
             writer.write("}\n");
-            writer.write("catch(NullPointerException e) {\n" + classn + ".table.getStringTopic(\"UpdateError\").publish().set(Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\n}\n}\n");
+            writer.write("catch(NullPointerException e) {\n" + "NT4Publisher.updateError" +".set(Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\n}\n}\n");
 
             
             for(Map.Entry<Name,TypeMirror> entry : fieldsMap.entrySet()) {

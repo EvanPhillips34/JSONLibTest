@@ -18,9 +18,20 @@ import edu.wpi.first.networktables.IntegerPublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.Publisher;
+import edu.wpi.first.networktables.StringPublisher;
 
 public class NT4Publisher {
-    NetworkTableInstance inst = NetworkTableInstance.getDefault();
+    private static NetworkTableInstance inst = NetworkTableInstance.getDefault();
+    private static NetworkTable table = inst.getTable("Tuning");
+
+
+    public static StringPublisher updateError = table.getStringTopic("UpdateError").publish();
+    public static StringPublisher createError = table.getStringTopic("FileCreateError").publish();
+    public static StringPublisher readError = table.getStringTopic("FileReadError").publish();
+    public static StringPublisher writeError = table.getStringTopic("FileWriteError").publish();
+
+    public static StringPublisher status = table.getStringTopic("Status").publish();
+
 
     public NT4Publisher() {
     }
