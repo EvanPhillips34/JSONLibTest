@@ -67,7 +67,7 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
         JavaFileObject sourceFile = filer.createSourceFile(packageName + "." + className);
         try (Writer writer = sourceFile.openWriter()) {
             writer.write("package " + packageName + ";\n\n");
-            writer.write("import edu.wpi.first.networktables.*;\nimport com.orangefrc.annotation.GSON;\nimport java.io.*;\nimport java.util.Arrays;\nimport java.util.stream.*;\nimport java.nio.file.*;\n");
+            writer.write("import edu.wpi.first.networktables.*;\nimport com.orangefrc.annotation.GSON;\nimport com.orangefrc.annotation.NT4Publisher;\n import java.io.*;\nimport java.util.Arrays;\nimport java.util.stream.*;\nimport java.nio.file.*;\n");
             writer.write("import java.util.Map;\n import javax.lang.model.element.Name;\n import java.util.HashMap;\nimport " + packageName + "." + classn + ";\nimport java.lang.StackTraceElement;\n");
 
             writer.write("public class " + className + " {\n");
@@ -161,11 +161,38 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
             writer.write("try(Reader reader = new FileReader(filePath)) {\n");
             writer.write("if(GSON.gson.fromJson(reader, JSON.class) != null) {\n");
             writer.write("json = GSON.gson.fromJson(reader, JSON.class);\n");
+
+            writer.write("putVals(");
+             first = true;
+            for(Map.Entry<Name,TypeMirror> entry : fieldsMap.entrySet()) {
+                if(first) {
+                    writer.write("");
+                    first = false;
+                }
+                else {
+                    writer.write(", ");
+                }
+                    writer.write("json.get" + entry.getKey() + "()");
+            }
+            writer.write(");\n");
+            
             writer.write("NT4Publisher.readError.set(\"Reading file for " + className + "!\");\n");
             writer.write("}\n");
             writer.write("else {\n");
             writer.write("NT4Publisher.status." + "set(\"Making new class file for " + className +"!\");\n");
-
+            writer.write("putVals(");
+            first = true;
+            for(Map.Entry<Name,TypeMirror> entry : fieldsMap.entrySet()) {
+                if(first) {
+                    writer.write("");
+                    first = false;
+                }
+                else {
+                    writer.write(", ");
+                }
+                    writer.write("0");
+            }
+            writer.write(");\n");
             writer.write("json = new JSON(");
             first = true;
             for(Map.Entry<Name,TypeMirror> entry : fieldsMap.entrySet()) {
@@ -228,7 +255,6 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
             writer.write("}\n");
 
             writer.write("public void updateVals() {\n");
-            writer.write("try {\n");
             first = true;
             writer.write("if(");
             
@@ -241,20 +267,20 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
                     writer.write(" || ");
                 }
                 if(entry.getValue().getKind() == TypeKind.DOUBLE) {
-                    writer.write("update" + entry.getKey() +" != " + classn + ".dubSubMap.get(\"" + entry.getKey() + "\").getAsDouble()");
+                    writer.write("update" + entry.getKey() +" != " + classn + ".dubSubMap.get(\"" + entry.getKey() + "Sub\").getAsDouble()");
                 }
                 if(entry.getValue().getKind() == TypeKind.INT) {
-                    writer.write("update" + entry.getKey() +" != (int) " + classn + ".intSubMap.get(\"" + entry.getKey() + ".get()");
+                    writer.write("update" + entry.getKey() +" != (int) " + classn + ".intSubMap.get(\"" + entry.getKey() + "Sub\").get()");
                 }
             }
             writer.write(") {\n");
             writer.write("hasUpdate = true;\n");
             for(Map.Entry<Name,TypeMirror> entry : fieldsMap.entrySet()) {
                 if(entry.getValue().getKind() == TypeKind.DOUBLE) {
-                    writer.write("update" + entry.getKey() +" = " + classn + ".dubSubMap.get(\"" + entry.getKey() + "\").getAsDouble();\n");
+                    writer.write("update" + entry.getKey() +" = " + classn + ".dubSubMap.get(\"" + entry.getKey() + "Sub\").getAsDouble();\n");
                 }
                 if(entry.getValue().getKind() == TypeKind.INT) {
-                    writer.write("update" + entry.getKey() +" = (int) " + classn + ".intSubMap.get(\"" + entry.getKey() + ".get();\n");
+                    writer.write("update" + entry.getKey() +" = (int) " + classn + ".intSubMap.get(\"" + entry.getKey() + "Sub\").get();\n");
 
                 }
             }
@@ -279,7 +305,6 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
             writer.write("}\n");
             writer.write("else {\n hasUpdate = false;\n}\n");
             writer.write("}\n");
-            writer.write("catch(NullPointerException e) {\n" + "NT4Publisher.updateError" +".set(Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining(System.lineSeparator() + \"\\tat\")));\n}\n}\n");
 
             
             for(Map.Entry<Name,TypeMirror> entry : fieldsMap.entrySet()) {
@@ -318,17 +343,23 @@ public class JsonAnnotationProcessor extends AbstractProcessor{
             if(entry.getValue().getKind() == TypeKind.DOUBLE) {
                 writer.write("DoublePublisher " + entry.getKey() + " = table.getDoubleTopic(\"" + className + "/" + entry.getKey() + "\").publish();\n");
                 writer.write("doubleMap.put(\"" + entry.getKey() + "\", " + entry.getKey() + ");\n");
+                writer.write("System.out.println(" + entry.getKey() + ".getHandle());\n");
                 writer.write("DoubleSubscriber " + entry.getKey() + "Sub = " + entry.getKey() + ".getTopic().subscribe(0.0);\n");
                 writer.write("dubSubMap.put(\"" + entry.getKey() + "Sub\"," + entry.getKey() + "Sub);\n");
             }
             if(entry.getValue().getKind() == TypeKind.INT) {
                 writer.write("IntegerPublisher " + entry.getKey() + " = table.getIntegerTopic(\"" + className + "/" + entry.getKey() + "\").publish();\n");
                 writer.write("intMap.put(\"" + entry.getKey() + "\", " + entry.getKey() + ");\n");
+                writer.write("System.out.println(\"" + entry.getKey() + ".getHandle()\");\n");
+
                 writer.write("IntegerSubscriber " + entry.getKey() + "Sub = " + entry.getKey() + ".getTopic().subscribe(0);\n");
                 writer.write("intSubMap.put(\"" + entry.getKey() + "Sub\"," + entry.getKey() + "Sub);\n");
             }
             
         }
+
+        writer.write("System.out.println(\"Instantiating the subscribe maps for " + classn + ":\" + dubSubMap.size());\n");
+            writer.write("System.out.println(\"Instantiating the publisher maps for " + classn + ":\" + doubleMap.size());\n");
 
         
         writer.write("}\n");
